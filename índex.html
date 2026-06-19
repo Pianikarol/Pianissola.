@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Pianissola</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=Inter:wght@300;400&display=swap');
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f8f6f3;
+      --ink: #1c1b19;
+      --muted: #9a9590;
+      --line: #e5e1db;
+      --white: #ffffff;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      background: var(--bg);
+      color: var(--ink);
+      font-family: 'Inter', sans-serif;
+      font-weight: 300;
+      min-height: 100vh;
+    }
+
+    /* ── HEADER ── */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      background: var(--bg);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1.4rem 2.5rem;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .logo {
+      font-family: 'Cormorant Garamond', serif;
+      font-weight: 300;
+      font-size: 1.55rem;
+      letter-spacing: 0.06em;
+      color: var(--ink);
+    }
+
+    .logo em {
+      font-style: italic;
+      color: var(--muted);
+    }
+
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 1.6rem;
+    }
+
+    .photo-count {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Upload button */
+    .btn-upload {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 400;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--ink);
+      background: transparent;
+      border: 1px solid var(--line);
+      padding: 0.55rem 1.1rem;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .btn-upload:hover {
+      background: var(--ink);
+      color: var(--bg);
+      border-color: var(--ink);
+    }
+
+    .btn-upload svg { flex-shrink: 0; }
+
+    #file-input { display: none; }
+
+    /* ── EMPTY STATE ── */
+    #empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 70vh;
+      gap: 1.2rem;
+      text-align: center;
+      padding: 2rem;
+    }
+
+    #empty-state .big-label {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 2.2rem;
+      color: var(--muted);
+      font-weight: 300;
+    }
+
+    #empty-state p {
+      font-size: 0.8rem;
+      color: var(--muted);
+      letter-spacing: 0.06em;
+      line-height: 1.7;
+    }
+
+    .btn-add-first {
+      margin-top: 0.8rem;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 400;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--white);
+      background: var(--ink);
+      border: none;
+      padding: 0.75rem 1.8rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+
+    .btn-add-first:hover { opacity: 0.75; }
+
+    /* ── GRID ── */
+    #gallery-wrap {
+      padding: 1.8rem 2.5rem 4rem;
+    }
+
+    #gallery {
+      columns: 3;
+      column-gap: 5px;
+    }
+
+    @media (max-width: 900px) { #gallery { columns: 2; } }
+    @media (max-width: 500px) {
+      #gallery { columns: 2; column-gap: 3px; }
+      #gallery-wrap { padding: 1rem 0.8rem 3rem; }
+      header { padding: 1.1rem 1.2rem; }
+    }
+
+    .grid-item {
+      break-inside: avoid;
+      margin-bottom: 5px;
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+      background: var(--line);
+    }
+
+    .grid-item img {
+      width: 100%;
+      display: block;
+      transition: opacity 0.3s ease, transform 0.4s ease;
+      filter: saturate(0.93) brightness(1.01);
+    }
+
+    .grid-item:hover img {
+      opacity: 0.85;
+      transform: scale(1.015);
+    }
+
+    /* Delete button on hover */
+    .grid-item .del-btn {
+      position: absolute;
+      top: 7px;
+      right: 7px;
+      width: 26px;
+      height: 26px;
+      background: rgba(248,246,243,0.88);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.2s;
+      font-size: 0.85rem;
+      color: var(--ink);
+      backdrop-filter: blur(4px);
+    }
+
+    .grid-item:hover .del-btn { opacity: 1; }
+
+    /* ── LIGHTBOX ── */
+    #lightbox {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 200;
+      background: rgba(248, 246, 243, 0.97);
+      backdrop-filter: blur(6px);
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+    }
+
+    #lightbox.open { display: flex; }
+
+    #lightbox-img {
+      max-width: 90vw;
+      max-height: 85vh;
+      object-fit: contain;
+      filter: saturate(0.93) brightness(1.01);
+      display: block;
+    }
+
+    .lb-close {
+      position: absolute;
+      top: 1.6rem;
+      right: 2rem;
+      background: none;
+      border: none;
+      font-family: 'Inter', sans-serif;
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color 0.2s;
+    }
+
+    .lb-close:hover { color: var(--ink); }
+
+    .lb-nav {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      color: var(--muted);
+      cursor: pointer;
+      padding: 1rem;
+      transition: color 0.2s;
+      line-height: 1;
+    }
+
+    .lb-nav:hover { color: var(--ink); }
+    .lb-prev { left: 1rem; }
+    .lb-next { right: 1rem; }
+
+    .lb-counter {
+      position: absolute;
+      bottom: 1.8rem;
+      font-size: 0.68rem;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+    }
+
+    /* ── DRAG OVERLAY ── */
+    #drag-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 300;
+      background: rgba(28, 27, 25, 0.55);
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    #drag-overlay.active { display: flex; }
+
+    #drag-overlay span {
+      font-family: 'Cormorant Garamond', serif;
+      font-style: italic;
+      font-size: 2rem;
+      color: var(--bg);
+      letter-spacing: 0.04em;
+    }
+
+    #drag-overlay small {
+      font-size: 0.75rem;
+      letter-spacing: 0.1em;
+      color: rgba(248,246,243,0.65);
+      text-transform: uppercase;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      padding: 0.8rem 2.5rem;
+      background: var(--bg);
+      border-top: 1px solid var(--line);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header>
+  <div class="logo">Piano<em>ssola</em></div>
+  <div class="header-right">
+    <span class="photo-count" id="count-label">0 fotos</span>
+    <button class="btn-upload" onclick="document.getElementById('file-input').click()">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M6 1v7M3 4l3-3 3 3M1 10h10" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/>
+      </svg>
+      Adicionar fotos
+    </button>
+    <input type="file" id="file-input" accept="image/*" multiple />
+  </div>
+</header>
+
+<!-- EMPTY STATE -->
+<div id="empty-state">
+  <div class="big-label">seu arquivo começa aqui</div>
+  <p>Arraste fotos para a página<br>ou clique para escolher</p>
+  <button class="btn-add-first" onclick="document.getElementById('file-input').click()">
+    Escolher fotos
+  </button>
+</div>
+
+<!-- GALLERY -->
+<div id="gallery-wrap" style="display:none">
+  <div id="gallery"></div>
+</div>
+
+<!-- LIGHTBOX -->
+<div id="lightbox">
+  <button class="lb-close" onclick="closeLightbox()">fechar ✕</button>
+  <button class="lb-nav lb-prev" onclick="navLightbox(-1)">‹</button>
+  <img id="lightbox-img" src="" alt="" />
+  <button class="lb-nav lb-next" onclick="navLightbox(1)">›</button>
+  <span class="lb-counter" id="lb-counter"></span>
+</div>
+
+<!-- DRAG OVERLAY -->
+<div id="drag-overlay">
+  <span>solte para adicionar</span>
+  <small>todas as fotos em HD</small>
+</div>
+
+<!-- FOOTER -->
+<footer>
+  <span>Pianissola</span>
+  <span id="footer-count"></span>
+</footer>
+
+<script>
+  const photos = []; // { url, name }
+  let currentIndex = 0;
+
+  const gallery = document.getElementById('gallery');
+  const galleryWrap = document.getElementById('gallery-wrap');
+  const emptyState = document.getElementById('empty-state');
+  const countLabel = document.getElementById('count-label');
+  const footerCount = document.getElementById('footer-count');
+  const fileInput = document.getElementById('file-input');
+  const lightbox = document.getElementById('lightbox');
+  const lightboxImg = document.getElementById('lightbox-img');
+  const lbCounter = document.getElementById('lb-counter');
+  const dragOverlay = document.getElementById('drag-overlay');
+
+  // ── FILE INPUT ──
+  fileInput.addEventListener('change', e => {
+    handleFiles(Array.from(e.target.files));
+    fileInput.value = '';
+  });
+
+  function handleFiles(files) {
+    const imageFiles = files.filter(f => f.type.startsWith('image/'));
+    if (!imageFiles.length) return;
+
+    imageFiles.forEach(file => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const photo = { url: e.target.result, name: file.name };
+        photos.push(photo);
+        addTile(photo, photos.length - 1);
+        updateUI();
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function addTile(photo, index) {
+    const item = document.createElement('div');
+    item.className = 'grid-item';
+    item.dataset.index = index;
+
+    const img = document.createElement('img');
+    img.src = photo.url;
+    img.alt = photo.name;
+    img.loading = 'lazy';
+    img.onclick = () => openLightbox(index);
+
+    const del = document.createElement('button');
+    del.className = 'del-btn';
+    del.title = 'Remover';
+    del.innerHTML = '✕';
+    del.onclick = (e) => {
+      e.stopPropagation();
+      removePhoto(index);
+    };
+
+    item.appendChild(img);
+    item.appendChild(del);
+    gallery.appendChild(item);
+  }
+
+  function removePhoto(index) {
+    photos.splice(index, 1);
+    rebuildGallery();
+    updateUI();
+  }
+
+  function rebuildGallery() {
+    gallery.innerHTML = '';
+    photos.forEach((photo, i) => addTile(photo, i));
+  }
+
+  function updateUI() {
+    const n = photos.length;
+    const label = n === 1 ? '1 foto' : `${n} fotos`;
+    countLabel.textContent = label;
+    footerCount.textContent = n > 0 ? label : '';
+
+    if (n === 0) {
+      emptyState.style.display = 'flex';
+      galleryWrap.style.display = 'none';
+    } else {
+      emptyState.style.display = 'none';
+      galleryWrap.style.display = 'block';
+    }
+  }
+
+  // ── LIGHTBOX ──
+  function openLightbox(index) {
+    currentIndex = index;
+    showLightboxPhoto();
+    lightbox.classList.add('open');
+  }
+
+  function showLightboxPhoto() {
+    lightboxImg.src = photos[currentIndex].url;
+    lbCounter.textContent = `${currentIndex + 1} / ${photos.length}`;
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove('open');
+  }
+
+  function navLightbox(dir) {
+    currentIndex = (currentIndex + dir + photos.length) % photos.length;
+    showLightboxPhoto();
+  }
+
+  lightbox.addEventListener('click', e => {
+    if (e.target === lightbox) closeLightbox();
+  });
+
+  document.addEventListener('keydown', e => {
+    if (!lightbox.classList.contains('open')) return;
+    if (e.key === 'Escape') closeLightbox();
+    if (e.key === 'ArrowRight') navLightbox(1);
+    if (e.key === 'ArrowLeft') navLightbox(-1);
+  });
+
+  // ── DRAG & DROP ──
+  let dragCounter = 0;
+
+  document.addEventListener('dragenter', e => {
+    e.preventDefault();
+    dragCounter++;
+    dragOverlay.classList.add('active');
+  });
+
+  document.addEventListener('dragleave', () => {
+    dragCounter--;
+    if (dragCounter === 0) dragOverlay.classList.remove('active');
+  });
+
+  document.addEventListener('dragover', e => e.preventDefault());
+
+  document.addEventListener('drop', e => {
+    e.preventDefault();
+    dragCounter = 0;
+    dragOverlay.classList.remove('active');
+    const files = Array.from(e.dataTransfer.files);
+    handleFiles(files);
+  });
+</script>
+
+</body>
+</html>
